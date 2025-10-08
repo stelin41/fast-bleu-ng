@@ -5,15 +5,15 @@ It can return (Self)BLEU for different (max) n-grams simultaneously and efficien
 
 ## Installation
 
-The installation requires `c++11`.
+The installation requires `c++17`.
 The `requirements.txt` file is the required python packages to run the `test_cases.py` file.
 
 ### Linux and WSL
 
-Installing [PyPI latest stable release](https://pypi.org/project/fast-bleu/):
+Installing
 
 ``` bash
-pip install --user fast-bleu
+pip install --user git+https://github.com/stelin41/fast-bleu-ng
 ```
 
 ### MacOS
@@ -21,10 +21,16 @@ pip install --user fast-bleu
 As the macOS uses clang and it does not support OpenMP, one workaround is to first install gcc with `brew install gcc`. After that, gcc specific binaries will be added (for example, it will be maybe `gcc-10`
 and `g++-10`).
 
-To change the default compiler, an option to the installation command is added, so you can install the [PyPI latest stable release](https://pypi.org/project/fast-bleu/) with the following command:
+To change the default compiler, an option to the installation command is added, so you can install it with the following command:
 
 ``` bash
-pip install --user fast-bleu --install-option="--CC=<path-to-gcc>" --install-option="--CXX=<path-to-g++>"
+CC=<path-to-gcc> CXX=<path-to-g++> pip install --user git+https://github.com/stelin41/fast-bleu-ng
+```
+
+for example
+
+``` bash
+CC=/opt/homebrew/Cellar/gcc/15.2.0/bin/gcc-15 CXX=/opt/homebrew/Cellar/gcc/15.2.0/bin/g++-15 pip install --user git+https://github.com/stelin41/fast-bleu-ng
 ```
 
 ### Windows
@@ -58,6 +64,13 @@ Here is an example to compute BLEU-2, BLEU-3, SelfBLEU-2 and SelfBLEU-3:
 >>> weights = {'bigram': (1/2., 1/2.), 'trigram': (1/3., 1/3., 1/3.)}
 
 >>> bleu = BLEU(list_of_references, weights)
+>>> bleu.get_score(hypotheses)
+{'bigram': [0.7453559924999299, 0.0191380231127159], 'trigram': [0.6240726901657495, 0.013720869575946234]}
+
+>>> # new, exponentially faster when list_of_references is constantly growing
+>>> bleu = BLEU([], weights)
+>>> for ref in list_of_references:
+...     bleu.append_reference(ref)
 >>> bleu.get_score(hypotheses)
 {'bigram': [0.7453559924999299, 0.0191380231127159], 'trigram': [0.6240726901657495, 0.013720869575946234]}
 ```
