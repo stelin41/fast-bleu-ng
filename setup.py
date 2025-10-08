@@ -61,15 +61,14 @@ class InstallCommand(install):
 
 class BuildExtWithoutPlatformSuffix(build_ext):
     def get_ext_filename(self, ext_name):
-        super().get_ext_filename(ext_name)
-        return ext_name + '.so'
+        return ext_name.replace('.', os.sep) + '.so'
 
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup = setuptools.setup(
-    name='fast-bleu',
+    name='fast-bleu-ng',
     version="0.0.90",
     author="Danial Alihosseini",
     author_email="danial.alihosseini@gmail.com",

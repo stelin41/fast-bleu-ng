@@ -15,17 +15,18 @@ public:
   BLEU_CPP();
   BLEU_CPP(vector<vector<string>>, vector<vector<float>>, int, int, bool, bool);
   vector<vector<double>> get_score(vector<vector<string>>);
+  void append_reference(const vector<string>& reference);
 
 private:
-  vector<string> **references;
-  vector<string> ***references_ngrams;
-  Counter ***references_counts;
-  CustomMap **reference_max_counts;
+  vector<vector<string> *> references;
+  vector<vector<vector<string> *>> references_ngrams;
+  vector<vector<Counter *>> references_counts;
+  vector<CustomMap *> reference_max_counts;
   vector<vector<float>> weights;
   int smoothing_function;
   bool auto_reweight;
   int max_n;
-  int *ref_lens;
+  vector<int> ref_lens;
   int number_of_refs;
   int n_cores;
   bool verbose;

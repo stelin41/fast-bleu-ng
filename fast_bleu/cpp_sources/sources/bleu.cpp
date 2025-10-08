@@ -17,47 +17,29 @@ BLEU_CPP::BLEU_CPP()
 
 BLEU_CPP::~BLEU_CPP()
 {
-    delete[] ref_lens;
-
     for (int i = 0; i < this->number_of_refs; i++)
         delete references[i];
-    delete[] this->references;
 
     for (int n = 0; n < this->max_n; n++)
     {
         for (int i = 0; i < this->number_of_refs; i++)
             delete this->references_ngrams[n][i];
-        delete[] this->references_ngrams[n];
     }
-    delete[] this->references_ngrams;
 
     for (int n = 0; n < this->max_n; n++)
     {
         for (int i = 0; i < this->number_of_refs; i++)
             delete this->references_counts[n][i];
-        delete[] this->references_counts[n];
     }
-    delete[] this->references_counts;
 
     for (int n = 0; n < this->max_n; n++)
         delete this->reference_max_counts[n];
-    delete[] this->reference_max_counts;
 }
 
 BLEU_CPP::BLEU_CPP(vector<vector<string>> lines_of_tokens, vector<vector<float>> weights,
                    int max_n, int smoothing_func, bool auto_reweight, bool verbose)
 {
     this->n_cores = thread::hardware_concurrency();
-    this->references = new vector<string> *[lines_of_tokens.size()];
-    this->references_ngrams = new vector<string> **[max_n];
-    for (int i = 0; i < max_n; i++)
-        this->references_ngrams[i] = new vector<string> *[lines_of_tokens.size()];
-    this->references_counts = new Counter **[max_n];
-    for (int i = 0; i < max_n; i++)
-        this->references_counts[i] = new Counter *[lines_of_tokens.size()];
-    this->reference_max_counts = new CustomMap *[max_n];
-
-    this->ref_lens = new int[lines_of_tokens.size()];
     this->weights = weights;
     this->max_n = max_n;
     this->auto_reweight = auto_reweight;
@@ -68,17 +50,27 @@ BLEU_CPP::BLEU_CPP(vector<vector<string>> lines_of_tokens, vector<vector<float>>
     if (this->verbose)
         cout << "bleu" << max_n << " init!" << endl;
 
+    this->references.reserve(this->number_of_refs);
+    this->ref_lens.reserve(this->number_of_refs);
     for (int i = 0; i < this->number_of_refs; i++)
     {
-        this->references[i] = new vector<string>(lines_of_tokens[i]);
-        this->ref_lens[i] = lines_of_tokens[i].size();
+        this->references.push_back(new vector<string>(lines_of_tokens[i]));
+        this->ref_lens.push_back(lines_of_tokens[i].size());
     }
+
+    this->references_ngrams.reserve(max_n);
+    this->references_counts.reserve(max_n);
+    this->reference_max_counts.reserve(max_n);
     for (int n = 0; n < this->max_n; n++)
     {
+        this->references_ngrams.push_back(vector<vector<string> *>());
+        this->references_ngrams[n].reserve(this->number_of_refs);
+        this->references_counts.push_back(vector<Counter *>());
+        this->references_counts[n].reserve(this->number_of_refs);
         for (int i = 0; i < this->number_of_refs; i++)
         {
-            this->references_ngrams[n][i] = get_ngrams(this->references[i], n + 1);
-            this->references_counts[n][i] = new Counter(this->references_ngrams[n][i]);
+            this->references_ngrams[n].push_back(get_ngrams(this->references[i], n + 1));
+            this->references_counts[n].push_back(new Counter(this->references_ngrams[n][i]));
         }
         this->get_max_counts(n);
     }
@@ -86,7 +78,7 @@ BLEU_CPP::BLEU_CPP(vector<vector<string>> lines_of_tokens, vector<vector<float>>
 
 void BLEU_CPP::get_max_counts_old(int n)
 {
-    this->reference_max_counts[n] = new CustomMap();
+    this->reference_max_counts.push_back(new CustomMap());
     vector<string> ngram_keys = vector<string>();
     for (int i = 0; i < this->number_of_refs; i++)
         for (string &ng : *this->references_ngrams[n][i])
@@ -120,7 +112,7 @@ void BLEU_CPP::get_max_counts_old(int n)
 
 void BLEU_CPP::get_max_counts(int n)
 {
-    this->reference_max_counts[n] = new CustomMap();
+    this->reference_max_counts.push_back(new CustomMap());
     set<string> ngrams_set = set<string>();
 
     for (int i = 0; i < this->number_of_refs; i++)
@@ -174,10 +166,10 @@ vector<vector<double>> BLEU_CPP::get_score(vector<vector<string>> hypotheses)
             {
                 vector<string> *hypothesis = &(hypotheses[i]);
                 temp_results[i] = corpus_bleu(number_of_refs, curr_n,
-                                              references,
+                                              references.data(),
                                               hypothesis,
-                                              reference_max_counts,
-                                              ref_lens,
+                                              reference_max_counts.data(),
+                                              ref_lens.data(),
                                               w,
                                               smoothing_function,
                                               auto_reweight);
@@ -190,4 +182,30 @@ vector<vector<double>> BLEU_CPP::get_score(vector<vector<string>> hypotheses)
         delete[] temp_results;
     }
     return results;
+}
+
+void BLEU_CPP::append_reference(const vector<string>& reference)
+{
+    this->number_of_refs++;
+    this->ref_lens.push_back(reference.size());
+    this->references.push_back(new vector<string>(reference));
+
+    for (int n = 0; n < this->max_n; n++)
+    {
+        vector<string> *ngrams = get_ngrams(this->references.back(), n + 1);
+        Counter* counts = new Counter(ngrams);
+
+        this->references_ngrams[n].push_back(ngrams);
+        this->references_counts[n].push_back(counts);
+
+        for (auto const& it : *counts)
+        {
+            string ngram = it.first;
+            int count = it.second;
+            if (this->reference_max_counts[n]->get(ngram) < count)
+            {
+                (*this->reference_max_counts[n])[ngram] = count;
+            }
+        }
+    }
 }

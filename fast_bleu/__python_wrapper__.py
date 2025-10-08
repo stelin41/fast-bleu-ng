@@ -99,6 +99,9 @@ class BLEU:
         self.__get_score.restype = ctypes.py_object
         self.__get_score.argtypes = [ctypes.c_void_p, ctypes.py_object]
 
+        self.__append_reference = self.__lib.append_reference_to_bleu
+        self.__append_reference.argtypes = [ctypes.c_void_p, ctypes.py_object]
+
         self.__del_instance.argtypes = [ctypes.c_void_p]
 
     def get_score(self, hypotheses: list):
@@ -125,6 +128,22 @@ class BLEU:
         if not faulthandler_enabled:
             faulthandler.disable()
         return {self.__weight_keys[i]: r for i, r in enumerate(result)}
+
+    def append_reference(self, ref: list):
+        """
+        Appends a new reference to the existing reference set.
+
+        Parameters
+        ----------
+        ref : list
+            A new reference (list of tokens).
+        """
+        ref = [str(dd).encode('utf-8') for dd in ref]
+        faulthandler_enabled = faulthandler.is_enabled()
+        faulthandler.enable()
+        self.__append_reference(self.__instance, ref)
+        if not faulthandler_enabled:
+            faulthandler.disable()
 
     def __del__(self):
         if hasattr(self, '_BLEU__instance') and hasattr(self, '_BLEU__del_instance'):

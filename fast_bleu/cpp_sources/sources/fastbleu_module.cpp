@@ -183,6 +183,18 @@ extern "C" void *get_bleu_score(void *bleu_ptr, PyObject *hypotheses)
     }
 }
 
+extern "C" void append_reference_to_bleu(void *bleu_ptr, PyObject *reference)
+{
+    try
+    {
+        ((BLEU_CPP *)bleu_ptr)->append_reference(list2vector_str(reference));
+    }
+    catch (...)
+    {
+        handle_exception();
+    }
+}
+
 extern "C" void *del_bleu_instance(void *bleu_ptr)
 {
     delete ((BLEU_CPP *)bleu_ptr);
