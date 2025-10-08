@@ -71,7 +71,10 @@ Here is an example to compute BLEU-2, BLEU-3, SelfBLEU-2 and SelfBLEU-3:
 >>> bleu = BLEU([], weights)
 >>> for ref in list_of_references:
 ...     bleu.append_reference(ref)
->>> bleu.get_score(hypotheses)
+...     print(bleu.get_score(hypotheses))
+...     
+{'bigram': [0.5362664443598958, 0.0191380231127159], 'trigram': [0.47598963400608124, 0.013720869575946234]}
+{'bigram': [0.6859943405700354, 0.0191380231127159], 'trigram': [0.5609068842147968, 0.013720869575946234]}
 {'bigram': [0.7453559924999299, 0.0191380231127159], 'trigram': [0.6240726901657495, 0.013720869575946234]}
 ```
 
